@@ -1,0 +1,55 @@
+# Coded in Jupyter Notebooks
+
+# See Question and then the code below:
+
+import zipfile
+
+from PIL import Image
+import pytesseract
+import cv2 as cv
+import numpy as np
+
+face_cascade = cv.CascadeClassifier('readonly/haarcascade_frontalface_default.xml')
+
+list_of_fil_names = []
+dict_of_pictures = {}
+name = "Mark"
+
+#z = zipfile.ZipFile('readonly/small_img.zip')
+#for e in z.infolist():
+   # dict_of_pictures[e.filename] = [Image.open(z.open(e.filename))]
+   # list_of_fil_names.append(e.filename)
+        
+z = zipfile.ZipFile('readonly/images.zip')
+for e in z.infolist():
+    dict_of_pictures[e.filename] = [Image.open(z.open(e.filename))]
+    list_of_fil_names.append(e.filename)
+
+for appel in list_of_fil_names:
+    img = dict_of_pictures[appel][0]  
+    dict_of_pictures[appel].append(pytesseract.image_to_string(img).replace('-\n',''))
+    if name in dict_of_pictures[appel][1]:         
+        print('Results found in file',appel)   
+        try:
+            faces = (face_cascade.detectMultiScale(np.array(img),1.35,4)).tolist()
+            dict_of_pictures[appel].append(faces)
+            faces_in_each = []
+                
+            for x,y,w,h in dict_of_pictures[appel][2]:
+                faces_in_each.append(img.crop((x,y,x+w,y+h)))
+                
+            sheet = Image.new(img.mode, (550,110*int(np.ceil(len(faces_in_each)/5))))
+            x, y = 0, 0
+
+            for face in faces_in_each:
+                face.thumbnail((110,110))
+                sheet.paste(face, (x, y))             
+                if x+110 == sheet.width:
+                    x=0
+                    y+=110
+                else:
+                    x+=110
+                        
+            display(sheet)
+        except:
+            print('But there were no faces in that file!')
